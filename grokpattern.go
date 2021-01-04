@@ -57,6 +57,11 @@ func newPattern(pattern string, knownPatterns patternMap, namedOnly bool) (*grok
 				typeHints[key] = strings.ToLower(typeName)
 			}
 		}
+		for safe, real := range refPattern.safeAliases {
+			if _, exists := safeAliases[safe]; !exists {
+				safeAliases[safe] = real
+			}
+		}
 
 		pattern = strings.Replace(pattern, keys[0], refExpression, -1)
 	}

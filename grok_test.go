@@ -165,6 +165,22 @@ func TestNamedCapturesWithDots(t *testing.T) {
 	expect.MapEqual(captured, "nested.foo.jour", "Tue")
 }
 
+func TestNamedDefinitionCapturesWithDots(t *testing.T) {
+	expect := ttesting.NewExpect(t)
+
+	g, err := New(Config{
+		Patterns: map[string]string{
+			"FOO": "%{DAY:nested.foo.jour}",
+		},
+	})
+	expect.NoError(err)
+
+	captured, err := g.ParseString(`%{FOO}`, "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157")
+	expect.NoError(err)
+	t.Log(captured)
+	expect.MapEqual(captured, "nested.foo.jour", "Tue")
+}
+
 func TestErrorCaptureUnknowPattern(t *testing.T) {
 	expect := ttesting.NewExpect(t)
 
