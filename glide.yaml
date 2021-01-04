@@ -1,6 +1,0 @@
-package: github.com/trivago/grok
-import: []
-testImport:
-- package: github.com/trivago/tgo
-  subpackages:
-  - ttesting

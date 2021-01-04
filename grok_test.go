@@ -1,9 +1,10 @@
 package grok
 
 import (
+	"testing"
+
 	"github.com/trivago/grok/patterns"
 	"github.com/trivago/tgo/ttesting"
-	"testing"
 )
 
 func TestNew(t *testing.T) {
@@ -151,6 +152,17 @@ func TestNamedCaptures(t *testing.T) {
 	captured, err := g.ParseString("%{DAY:jour}", "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157")
 	expect.NoError(err)
 	expect.MapEqual(captured, "jour", "Tue")
+}
+
+func TestNamedCapturesWithDots(t *testing.T) {
+	expect := ttesting.NewExpect(t)
+
+	g, err := New(Config{})
+	expect.NoError(err)
+
+	captured, err := g.ParseString("%{DAY:nested.foo.jour}", "Tue May 15 11:21:42 [conn1047685] moveChunk deleted: 7157")
+	expect.NoError(err)
+	expect.MapEqual(captured, "nested.foo.jour", "Tue")
 }
 
 func TestErrorCaptureUnknowPattern(t *testing.T) {

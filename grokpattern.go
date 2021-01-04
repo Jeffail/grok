@@ -7,23 +7,29 @@ import (
 )
 
 type grokPattern struct {
-	expression string
-	typeHints  typeHintByKey
+	expression  string
+	safeAliases map[string]string
+	typeHints   typeHintByKey
 }
 
 var (
-	namedReference = regexp.MustCompile(`%{(\w+(?::\w+(?::\w+)?)?)}`)
+	namedReference = regexp.MustCompile(`%{([\w-.]+(?::[\w-.]+(?::[\w-.]+)?)?)}`)
+	symbolic       = regexp.MustCompile(`\W`)
 )
 
 func newPattern(pattern string, knownPatterns patternMap, namedOnly bool) (*grokPattern, error) {
 	typeHints := typeHintByKey{}
+	safeAliases := map[string]string{}
 
 	for _, keys := range namedReference.FindAllStringSubmatch(pattern, -1) {
-
 		names := strings.Split(keys[1], ":")
 		refKey, refAlias := names[0], names[0]
 		if len(names) > 1 {
 			refAlias = names[1]
+		}
+		if safeAlias := symbolic.ReplaceAllString(refAlias, "_"); safeAlias != refAlias {
+			safeAliases[safeAlias] = refAlias
+			refAlias = safeAlias
 		}
 
 		// Add type cast information only if type set, and not string
@@ -56,7 +62,8 @@ func newPattern(pattern string, knownPatterns patternMap, namedOnly bool) (*grok
 	}
 
 	return &grokPattern{
-		expression: pattern,
-		typeHints:  typeHints,
+		expression:  pattern,
+		safeAliases: safeAliases,
+		typeHints:   typeHints,
 	}, nil
 }

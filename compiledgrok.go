@@ -10,6 +10,7 @@ import (
 // Use Grok.Compile to generate a CompiledGrok object.
 type CompiledGrok struct {
 	regexp      *regexp.Regexp
+	safeAliases map[string]string
 	typeHints   typeHintByKey
 	removeEmpty bool
 }
@@ -18,7 +19,15 @@ type typeHintByKey map[string]string
 
 // GetFields returns a list of all named fields in this grok expression
 func (compiled CompiledGrok) GetFields() []string {
-	return compiled.regexp.SubexpNames()
+	names := compiled.regexp.SubexpNames()
+	if len(compiled.safeAliases) > 0 {
+		for i, v := range names {
+			if a, ok := compiled.safeAliases[v]; ok {
+				names[i] = a
+			}
+		}
+	}
+	return names
 }
 
 // Match returns true if the given data matches the pattern.
@@ -38,12 +47,12 @@ func (compiled CompiledGrok) Parse(data []byte) map[string][]byte {
 	captures := make(map[string][]byte)
 
 	if matches := compiled.regexp.FindSubmatch(data); len(matches) > 0 {
-		for idx, key := range compiled.GetFields() {
+		for idx, key := range compiled.regexp.SubexpNames() {
 			match := matches[idx]
 			if compiled.omitField(key, match) {
 				continue
 			}
-			captures[key] = match
+			captures[compiled.origName(key)] = match
 		}
 	}
 
@@ -57,12 +66,12 @@ func (compiled CompiledGrok) ParseString(text string) map[string]string {
 	captures := make(map[string]string)
 
 	if matches := compiled.regexp.FindStringSubmatch(text); len(matches) > 0 {
-		for idx, key := range compiled.GetFields() {
+		for idx, key := range compiled.regexp.SubexpNames() {
 			match := matches[idx]
 			if compiled.omitStringField(key, match) {
 				continue
 			}
-			captures[key] = match
+			captures[compiled.origName(key)] = match
 		}
 	}
 
@@ -76,14 +85,14 @@ func (compiled CompiledGrok) ParseTyped(data []byte) (map[string]interface{}, er
 	captures := make(map[string]interface{})
 
 	if matches := compiled.regexp.FindSubmatch(data); len(matches) > 0 {
-		for idx, key := range compiled.GetFields() {
+		for idx, key := range compiled.regexp.SubexpNames() {
 			match := matches[idx]
 			if compiled.omitField(key, match) {
 				continue
 			}
 
 			if val, err := compiled.typeCast(string(match), key); err == nil {
-				captures[key] = val
+				captures[compiled.origName(key)] = val
 			} else {
 				return nil, err
 			}
@@ -100,14 +109,14 @@ func (compiled CompiledGrok) ParseStringTyped(text string) (map[string]interface
 	captures := make(map[string]interface{})
 
 	if matches := compiled.regexp.FindStringSubmatch(text); len(matches) > 0 {
-		for idx, key := range compiled.GetFields() {
+		for idx, key := range compiled.regexp.SubexpNames() {
 			match := matches[idx]
 			if compiled.omitStringField(key, match) {
 				continue
 			}
 
 			if val, err := compiled.typeCast(match, key); err == nil {
-				captures[key] = val
+				captures[compiled.origName(key)] = val
 			} else {
 				return nil, err
 			}
@@ -122,12 +131,13 @@ func (compiled CompiledGrok) ParseToMultiMap(data []byte) map[string][][]byte {
 	captures := make(map[string][][]byte)
 
 	if matches := compiled.regexp.FindSubmatch(data); len(matches) > 0 {
-		for idx, key := range compiled.GetFields() {
+		for idx, key := range compiled.regexp.SubexpNames() {
 			match := matches[idx]
 			if compiled.omitField(key, match) {
 				continue
 			}
 
+			key = compiled.origName(key)
 			if values, exists := captures[key]; exists {
 				captures[key] = append(values, match)
 			} else {
@@ -145,12 +155,13 @@ func (compiled CompiledGrok) ParseStringToMultiMap(text string) map[string][]str
 	captures := make(map[string][]string)
 
 	if matches := compiled.regexp.FindStringSubmatch(text); len(matches) > 0 {
-		for idx, key := range compiled.GetFields() {
+		for idx, key := range compiled.regexp.SubexpNames() {
 			match := matches[idx]
 			if compiled.omitStringField(key, match) {
 				continue
 			}
 
+			key = compiled.origName(key)
 			if values, exists := captures[key]; exists {
 				captures[key] = append(values, match)
 			} else {
@@ -170,6 +181,13 @@ func (compiled CompiledGrok) omitField(key string, match []byte) bool {
 // omitStringField return true if the field is to be omitted
 func (compiled CompiledGrok) omitStringField(key, match string) bool {
 	return len(key) == 0 || compiled.removeEmpty && len(match) == 0
+}
+
+func (compiled CompiledGrok) origName(name string) string {
+	if n, exists := compiled.safeAliases[name]; exists {
+		return n
+	}
+	return name
 }
 
 // typeCast casts a field based on a typehint

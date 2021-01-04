@@ -62,6 +62,7 @@ func (grok Grok) Compile(pattern string) (*CompiledGrok, error) {
 	return &CompiledGrok{
 		regexp:      compiled,
 		typeHints:   grokPattern.typeHints,
+		safeAliases: grokPattern.safeAliases,
 		removeEmpty: grok.removeEmpty,
 	}, nil
 }
