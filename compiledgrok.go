@@ -204,10 +204,13 @@ func (compiled CompiledGrok) typeCast(match, key string) (interface{}, error) {
 	case "float":
 		return strconv.ParseFloat(match, 64)
 
+	case "bool":
+		return strconv.ParseBool(match)
+
 	case "string":
 		return match, nil
 
 	default:
-		return nil, fmt.Errorf("ERROR the value %s cannot be converted to %s. Must be int, float, string or empty", match, typeName)
+		return nil, fmt.Errorf("ERROR the value %s cannot be converted to %s. Must be int, float, bool, string or empty", match, typeName)
 	}
 }
