@@ -423,11 +423,12 @@ func TestParseTypedWithDefaultCaptureMode(t *testing.T) {
 	g, err := New(Config{NamedCapturesOnly: true})
 	expect.NoError(err)
 
-	captures, err := g.ParseStringTyped("%{IPV4:ip:string} %{NUMBER:status:int} %{NUMBER:duration:float}", `127.0.0.1 200 0.8`)
+	captures, err := g.ParseStringTyped("%{IPV4:ip:string} %{NUMBER:status:int} %{NUMBER:duration:float} %{WORD:boolean:bool}", `127.0.0.1 200 0.8 True`)
 	expect.NoError(err)
 	expect.MapEqual(captures, "ip", "127.0.0.1")
 	expect.MapEqual(captures, "status", 200)
 	expect.MapEqual(captures, "duration", 0.8)
+	expect.MapEqual(captures, "boolean", true)
 }
 
 func TestParseTypedWithNoTypeInfo(t *testing.T) {
