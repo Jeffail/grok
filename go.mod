@@ -1,4 +1,4 @@
-module github.com/Jeffail/grok
+module github.com/GeorgeGkinis/grok
 
 go 1.15
 
