@@ -204,6 +204,9 @@ func (compiled CompiledGrok) typeCast(match, key string) (interface{}, error) {
 	case "float":
 		return strconv.ParseFloat(match, 64)
 
+	case "bool":
+		return strconv.ParseBool(match)
+
 	case "string":
 		return match, nil
 
